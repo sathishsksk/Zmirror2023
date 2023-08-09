@@ -594,12 +594,6 @@ aria2c_global = ['bt-max-open-files', 'download-result', 'keep-unfinished-downlo
                  'max-concurrent-downloads', 'max-download-result', 'max-overall-download-limit', 'save-session',
                  'max-overall-upload-limit', 'optimize-concurrent-downloads', 'save-cookies', 'server-stat-of']
 
-if not aria2_options:
-    aria2_options = aria2.client.get_global_option()
-else:
-    a2c_glo = {op: aria2_options[op]
-               for op in aria2c_global if op in aria2_options}
-    aria2.set_global_options(a2c_glo)
 
 qb_client = get_client()
 if not qbit_options:
