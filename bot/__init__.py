@@ -5,7 +5,7 @@ from logging import (INFO, FileHandler, StreamHandler, basicConfig,
                      error, getLogger, info, warning)
 from os import environ, path as ospath, remove, getcwd
 from socket import setdefaulttimeout
-from subprocess import Popen, run as zrun, check_output
+from subprocess import Popen, run as zrun
 from threading import Thread
 from time import sleep, time
 
@@ -304,7 +304,7 @@ if len(UPSTREAM_REPO) == 0:
 
 UPSTREAM_BRANCH = environ.get('UPSTREAM_BRANCH', '')
 if len(UPSTREAM_BRANCH) == 0:
-    UPSTREAM_BRANCH = 'zh_run'
+    UPSTREAM_BRANCH = 'main'
 
 RCLONE_SERVE_URL = environ.get('RCLONE_SERVE_URL', '')
 if len(RCLONE_SERVE_URL) == 0:
@@ -533,33 +533,27 @@ if ospath.exists('categories.txt'):
                 tempdict['index_link'] = ''
             categories_dict[name] = tempdict
 
-PORT = environ.get('PORT')
-Popen(f"gunicorn web.wserver:app --bind 0.0.0.0:{PORT} --worker-class gevent", shell=True)
+if BASE_URL:
+    Popen(
+        f"gunicorn web.wserver:app --bind 0.0.0.0:{BASE_URL_PORT} --worker-class gevent", shell=True)
 
 info("Starting qBittorrent-Nox")
-zrun(["openstack", "-d", f"--profile={getcwd()}"])
+zrun(["qbittorrent-nox", "-d", f"--profile={getcwd()}"])
 if not ospath.exists('.netrc'):
     with open('.netrc', 'w'):
-       pass
+        pass
 zrun(["chmod", "600", ".netrc"])
 zrun(["cp", ".netrc", "/root/.netrc"])
-
-trackers = check_output("curl -Ns https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt https://ngosang.github.io/trackerslist/trackers_all_http.txt https://newtrackon.com/api/all https://raw.githubusercontent.com/hezhijie0327/Trackerslist/main/trackerslist_tracker.txt | awk '$0' | tr '\n\n' ','", shell=True).decode('utf-8').rstrip(',')
-with open("a2c.conf", "a+") as a:
-    if TORRENT_TIMEOUT is not None:
-        a.write(f"bt-stop-timeout={TORRENT_TIMEOUT}\n")
-    a.write(f"bt-tracker=[{trackers}]")
-zrun(["buffet", "--conf-path=/usr/src/app/a2c.conf"])
-
+zrun(["chmod", "+x", "aria.sh"])
+zrun("./aria.sh", shell=True)
 if ospath.exists('accounts.zip'):
     if ospath.exists('accounts'):
         zrun(["rm", "-rf", "accounts"])
-    zrun(["7z", "x", "-o.", "-bd", "-aoa", "accounts.zip", "accounts/*.json"])
+    zrun(["7z", "x", "-o.", "-aoa", "accounts.zip", "accounts/*.json"])
     zrun(["chmod", "-R", "777", "accounts"])
     remove('accounts.zip')
 if not ospath.exists('accounts'):
     config_dict['USE_SERVICE_ACCOUNTS'] = False
-alive = Popen(["python3", "alive.py"])
 sleep(0.5)
 
 aria2 = ariaAPI(ariaClient(host="http://localhost", port=6800, secret=""))
@@ -574,7 +568,6 @@ def aria2c_init():
         info("Starting Aria2c")
         link = "https://linuxmint.com/torrents/lmde-5-cinnamon-64bit.iso.torrent"
         dl = aria2.add_uris([link], {'dir': DOWNLOAD_DIR.rstrip("/")})
-        sleep(3)
         for _ in range(4):
             dl = dl.live
             if dl.followed_by_ids:
